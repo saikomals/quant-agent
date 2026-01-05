@@ -1,13 +1,13 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 # --- 1. The Replay Log (Machine Readable) ---
 class ActionLog(BaseModel):
     step_id: int
     tool_name: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     input_hash: str     # SHA256 of the input provided to the tool
     output_hash: str    # SHA256 of the output received from the tool
     data_snapshot_id: Optional[str] = None # If external data was fetched
@@ -23,7 +23,7 @@ class EvidenceBundle(BaseModel):
     run_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     ticket_id: str
     agent_version: str  # Git SHA of THIS repo
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     # The immutable history
     replay_log: List[ActionLog] = []
@@ -37,5 +37,6 @@ class EvidenceBundle(BaseModel):
         "data_leakage_passed": False
     }
 
-    class Config:
-        json_encoders = {datetime: lambda v: v.isoformat()}
+    model_config = ConfigDict(
+        ser_json_timedelta="iso8601"
+    )
